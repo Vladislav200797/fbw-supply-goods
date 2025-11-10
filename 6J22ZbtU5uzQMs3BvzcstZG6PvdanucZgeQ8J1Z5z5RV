@@ -1,0 +1,44 @@
+name: FBW Supply Goods — Daily
+
+on:
+  schedule:
+    - cron: "0 4 * * *"   # 07:00 MSK == 04:00 UTC
+  workflow_dispatch: {}
+
+concurrency:
+  group: fbw-supply-goods
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run goods sync
+        env:
+          PYTHONUNBUFFERED: "1"
+          WB_SUPPLIES_TOKEN:    ${{ secrets.WB_SUPPLIES_TOKEN }}
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SUPABASE_SCHEMA: "public"
+          SUPABASE_SUPPLIES_TABLE: "fbw_supplies"
+          SUPABASE_GOODS_TABLE:    "fbw_supply_goods"
+          REQUEST_SLEEP_SEC: "2.1"   # лимит 30 req/min
+          # --- Опционально: ускорители/ограничители ---
+          GOODS_UPDATED_DAYS: ""     # "" = тянуть ВСЕ; можно поставить "7"
+          MAX_KEYS: ""               # лимит кол-ва поставок за запуск (например, "1500")
+          LOG_EVERY: "25"
+        run: |
+          python -u fetch_wb_fbw_supply_goods.py
