@@ -1,4 +1,4 @@
-name: FBW Supply Goods — Daily
+name: FBW Supply Goods — Daily (last 7 days, UPSERT)
 
 on:
   schedule:
@@ -15,18 +15,14 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
-      - name: Run goods sync
+      - name: Run goods sync (7 days, UPSERT)
         env:
           PYTHONUNBUFFERED: "1"
           WB_SUPPLIES_TOKEN:    ${{ secrets.WB_SUPPLIES_TOKEN }}
@@ -35,10 +31,10 @@ jobs:
           SUPABASE_SCHEMA: "public"
           SUPABASE_SUPPLIES_TABLE: "fbw_supplies"
           SUPABASE_GOODS_TABLE:    "fbw_supply_goods"
-          REQUEST_SLEEP_SEC: "2.1"   # лимит 30 req/min
-          # --- Опционально: ускорители/ограничители ---
-          GOODS_UPDATED_DAYS: ""     # "" = тянуть ВСЕ; можно поставить "7"
-          MAX_KEYS: ""               # лимит кол-ва поставок за запуск (например, "1500")
+          REQUEST_SLEEP_SEC: "2.1"
+          GOODS_UPDATED_DAYS: "7"     # ← только свежие
+          MAX_KEYS: ""
           LOG_EVERY: "25"
+          FULL_REFRESH: "false"       # ← UPSERT, без удалений
         run: |
           python -u fetch_wb_fbw_supply_goods.py
